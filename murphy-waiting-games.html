@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>等待小遊戲</title>
+<style>
+:root{
+  --cream:#FFF6EE; --milk:#FFFFFF; --line:#E0C3A3; --brown:#6B4F3A;
+  --blush:#FFB4C4; --mint:#9FDCC6; --butter:#FFD98A; --sky:#A8D5F2; --lilac:#D8C6F0;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{margin:0;background:var(--cream);color:var(--brown);
+  font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;
+  user-select:none;-webkit-user-select:none;overscroll-behavior:none;
+  display:flex;flex-direction:column;}
+button{font-family:inherit;cursor:pointer;border:none;color:var(--brown)}
+
+.top{display:flex;align-items:center;gap:7px;padding:9px 12px;
+  border-bottom:2px solid var(--line);background:var(--milk);flex:0 0 auto}
+.jar{font-size:21px;line-height:1}
+.count{font-size:19px;font-weight:800}
+.count small{font-size:11px;font-weight:600;opacity:.6;margin-left:2px}
+.bank{font-size:12px;opacity:.55;font-weight:700}
+.spacer{flex:1}
+.chip{border:2px solid var(--line);background:var(--cream);border-radius:999px;
+  padding:5px 11px;font-size:13px;font-weight:700}
+#lvctl{display:none;align-items:center;gap:2px;border:2px solid var(--line);
+  border-radius:999px;background:var(--butter);padding:2px}
+#lvctl button{width:26px;height:26px;border-radius:50%;background:var(--milk);
+  border:2px solid var(--line);font-size:12px;font-weight:800;line-height:1;padding:0}
+#lvctl b{font-size:13px;padding:0 4px;min-width:34px;text-align:center}
+#bookctl{display:flex;align-items:center;gap:2px;border:2px solid var(--line);
+  border-radius:999px;background:var(--butter);padding:2px}
+#bookctl button{width:26px;height:26px;border-radius:50%;background:var(--milk);
+  border:2px solid var(--line);font-size:12px;font-weight:800;line-height:1;padding:0}
+#bookctl b{font-size:13px;padding:0 6px;text-align:center}
+.slot.gold{border-color:#E0B44A;background:#FFF4D6}
+.done-ribbon{grid-column:1/-1;text-align:center;font-size:14px;font-weight:800;
+  background:var(--mint);border:3px solid var(--line);border-radius:999px;padding:7px}
+
+.screen{flex:1;display:none;flex-direction:column;padding:13px;min-height:0}
+.screen.on{display:flex}
+
+h1{font-size:21px;margin:2px 0;font-weight:800}
+.sub{font-size:12px;opacity:.6;margin:2px 0 11px;line-height:1.5}
+.tiles{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px;
+  overflow-y:auto;align-content:start;padding-bottom:14px}
+.tile{border:3px solid var(--line);border-radius:22px;background:var(--milk);
+  padding:12px 8px;box-shadow:0 4px 0 var(--line);text-align:center;position:relative}
+.tile:active{transform:translateY(4px);box-shadow:0 0 0 var(--line)}
+.tile .ico{font-size:32px;line-height:1.1}
+.tile b{display:block;font-size:15px;margin-top:5px}
+.tile span{font-size:10.5px;opacity:.55}
+.tile .lv{position:absolute;top:6px;right:8px;font-size:11px;font-weight:800;
+  background:var(--butter);border-radius:999px;padding:1px 6px}
+.t1{background:#FFF0F4}.t2{background:#EEFAF5}.t3{background:#FFF8E6}
+.t4{background:#EFF6FD}.t5{background:#F6F0FD}.t6{background:#FFF1E8}
+.tile.album{grid-column:1/-1;display:flex;align-items:center;gap:14px;text-align:left;
+  background:linear-gradient(100deg,#FFF3E0,#FDEEF6)}
+.tile.album b{margin:0}
+
+.bar{display:flex;align-items:center;gap:9px;margin-bottom:9px;flex:0 0 auto}
+.bar .title{font-size:17px;font-weight:800}
+.info{font-size:14px;font-weight:700}
+.mission{font-size:14px;font-weight:800;background:var(--butter);
+  border:2px solid var(--line);border-radius:999px;padding:5px 14px}
+.stage{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:11px;min-height:0}
+.wrap{width:100%;max-width:430px}
+
+#grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;aspect-ratio:1/1}
+.hole{border:3px solid var(--line);border-radius:20px;background:var(--milk);
+  display:flex;align-items:center;justify-content:center;font-size:11vw;overflow:hidden}
+.hole.up{background:var(--butter)}
+.hole.bad{background:#FFE2E2}
+.hole .pop{transform:scale(0);transition:transform .1s}
+.hole.up .pop{transform:scale(1)}
+
+#board{display:grid;gap:7px}
+.card{aspect-ratio:3/4;border:3px solid var(--line);border-radius:15px;background:var(--sky);
+  display:flex;align-items:center;justify-content:center;font-size:27px}
+.card .face{opacity:0;transition:opacity .15s}
+.card.open,.card.done{background:var(--milk)}
+.card.open .face,.card.done .face{opacity:1}
+.card.done{border-color:var(--mint);background:#EEFAF5}
+
+#things,#sumbox{border:3px dashed var(--line);border-radius:24px;background:var(--milk);
+  min-height:128px;padding:12px;display:flex;flex-wrap:wrap;align-items:center;
+  justify-content:center;gap:6px;font-size:32px}
+#sumbox{gap:8px}
+.group{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;max-width:42%}
+.gone{opacity:.25;text-decoration:line-through}
+.plus{font-size:26px;opacity:.55;font-weight:800}
+.num{flex:1;border:3px solid var(--line);border-radius:18px;background:var(--milk);
+  padding:11px 0;font-size:28px;font-weight:800;box-shadow:0 4px 0 var(--line)}
+.num:active{transform:translateY(4px);box-shadow:0 0 0 var(--line)}
+.num.yes{background:var(--mint)}
+.num.no{background:#FFE2E2;opacity:.55}
+.num:disabled{cursor:default}
+.opts{display:flex;gap:9px;flex-wrap:wrap}
+.opts .num{min-width:26%}
+.word{font-size:14px;opacity:.6;letter-spacing:2px;font-weight:700}
+
+#target{border:3px solid var(--line);border-radius:20px;background:var(--butter);
+  padding:6px 14px;font-size:26px;display:flex;align-items:center;gap:9px}
+#target b{font-size:13px}
+#seek{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.seekcell{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;
+  font-size:7vw;border-radius:12px}
+.seekcell.got{background:var(--mint);opacity:.7}
+.seekcell.miss{background:#FFE2E2}
+
+#pads{display:grid;grid-template-columns:1fr 1fr;gap:11px;aspect-ratio:1/1}
+.pad{border:4px solid var(--line);border-radius:26px;opacity:.5;
+  display:flex;align-items:center;justify-content:center;font-size:36px}
+.pad.lit{opacity:1;transform:scale(.96)}
+.p0{background:var(--blush)}.p1{background:var(--sky)}
+.p2{background:var(--butter)}.p3{background:var(--mint)}
+
+#odd{display:grid;gap:8px}
+.oddcell{aspect-ratio:1/1;border:3px solid var(--line);border-radius:18px;background:var(--milk);
+  display:flex;align-items:center;justify-content:center;font-size:10vw}
+.oddcell.yes{background:var(--mint)}
+.oddcell.no{background:#FFE2E2}
+
+#pic,#cvcpic{border:3px solid var(--line);border-radius:24px;background:var(--milk);
+  padding:14px;font-size:58px;text-align:center}
+.letter{flex:1;border:3px solid var(--line);border-radius:18px;background:var(--milk);
+  padding:12px 4px;font-size:24px;font-weight:800;box-shadow:0 4px 0 var(--line)}
+.letter:active{transform:translateY(4px);box-shadow:0 0 0 var(--line)}
+.letter.yes{background:var(--mint)}.letter.no{background:#FFE2E2;opacity:.55}
+#cvcword{font-size:40px;font-weight:800;letter-spacing:7px;font-family:Menlo,Consolas,monospace}
+#cvcword .blank{color:var(--blush);border-bottom:5px solid var(--blush)}
+
+#pattern{display:flex;flex-wrap:wrap;justify-content:center;gap:7px}
+.pcell{width:50px;height:50px;border:3px solid var(--line);border-radius:15px;background:var(--milk);
+  display:flex;align-items:center;justify-content:center;font-size:25px}
+.pcell.q{border-style:dashed;background:#FFF8E6}
+
+#canvasBox{flex:1;width:100%;border:3px solid var(--line);border-radius:22px;
+  background:var(--milk);overflow:hidden;min-height:0}
+#pad{display:block;touch-action:none;width:100%;height:100%}
+.tools{display:flex;gap:7px;flex:0 0 auto;margin-top:9px;flex-wrap:wrap;justify-content:center}
+.sw{width:36px;height:36px;border-radius:50%;border:3px solid var(--line)}
+.sw.on{border-color:var(--brown);transform:scale(1.12)}
+.tool{border:3px solid var(--line);border-radius:999px;background:var(--milk);
+  padding:0 12px;height:36px;font-size:13px;font-weight:700}
+
+#album{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;overflow-y:auto;padding:4px}
+.slot{aspect-ratio:1/1;border:3px dashed var(--line);border-radius:18px;background:var(--milk);
+  display:flex;align-items:center;justify-content:center;font-size:28px;opacity:.35}
+.slot.has{opacity:1;border-style:solid;background:#FFF8E6}
+
+.float{position:fixed;font-size:24px;pointer-events:none;animation:up .7s ease-out forwards;z-index:20}
+@keyframes up{to{transform:translateY(-60px);opacity:0}}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%) scale(.9);
+  background:var(--butter);border:3px solid var(--line);border-radius:999px;
+  padding:8px 17px;font-size:15px;font-weight:800;opacity:0;pointer-events:none;
+  transition:all .25s;z-index:30}
+#toast.on{opacity:1;transform:translateX(-50%) scale(1)}
+
+.mask{position:fixed;inset:0;background:rgba(107,79,58,.45);display:none;
+  align-items:center;justify-content:center;padding:24px;z-index:9}
+.mask.on{display:flex}
+.panel{background:var(--milk);border:3px solid var(--line);border-radius:28px;
+  padding:23px 21px;text-align:center;width:100%;max-width:340px}
+.panel .em{font-size:50px}
+.panel p{font-size:18px;font-weight:800;margin:9px 0 5px}
+.panel .note{font-size:13px;font-weight:700;opacity:.65;margin:0 0 15px}
+.row{display:flex;gap:9px}
+.btn{flex:1;border:3px solid var(--line);border-radius:18px;background:var(--butter);
+  font-size:16px;font-weight:800;padding:11px 0;box-shadow:0 4px 0 var(--line)}
+.btn.ghost{background:var(--milk)}
+.btn:active{transform:translateY(4px);box-shadow:0 0 0 var(--line)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="jar">🍯</div>
+  <div class="count"><span id="stars">0</span><small>星</small></div>
+  <div class="bank" id="stickcount">🏅 0</div>
+  <div class="spacer"></div>
+  <div id="lvctl"><button id="lvdn">◀</button><b id="lvnow">Lv1</b><button id="lvup">▶</button></div>
+  <button class="chip" id="sound">🔇</button>
+  <button class="chip" id="home" style="display:none">選單</button>
+</div>
+
+<section class="screen on" id="s-menu">
+  <h1>等一下下，先玩小遊戲</h1>
+  <p class="sub">每個遊戲有 Lv1–Lv6，玩法會跟著變（不只是變快）。答對 75% 自動升級，也可以在遊戲裡用 ◀ ▶ 直接調。</p>
+  <div class="tiles" id="tiles">
+    <button class="tile album" data-go="album">
+      <div class="ico">📔</div>
+      <div><b>貼紙簿</b><span id="album-sub">還沒有貼紙</span></div>
+    </button>
+    <button class="tile t1" data-go="tap"><span class="lv" data-lv="tap"></span><div class="ico">🐹</div><b>快點我</b><span>反應 · 抑制</span></button>
+    <button class="tile t2" data-go="mem"><span class="lv" data-lv="mem"></span><div class="ico">🃏</div><b>找一樣的</b><span>記憶 · 配對</span></button>
+    <button class="tile t3" data-go="cnt"><span class="lv" data-lv="cnt"></span><div class="ico">🍎</div><b>數一數</b><span>數量 · 瞬間記憶</span></button>
+    <button class="tile t4" data-go="add"><span class="lv" data-lv="add"></span><div class="ico">➕</div><b>算一算</b><span>加 · 減 · 缺數</span></button>
+    <button class="tile t5" data-go="seek"><span class="lv" data-lv="seek"></span><div class="ico">🔍</div><b>找找看</b><span>視覺搜尋</span></button>
+    <button class="tile t6" data-go="simon"><span class="lv" data-lv="simon"></span><div class="ico">🎵</div><b>跟我做</b><span>序列 · 倒序</span></button>
+    <button class="tile t1" data-go="odd"><span class="lv" data-lv="odd"></span><div class="ico">🧩</div><b>誰不一樣</b><span>分類 · 細節</span></button>
+    <button class="tile t4" data-go="pat"><span class="lv" data-lv="pat"></span><div class="ico">🔁</div><b>接下去</b><span>規律推理</span></button>
+    <button class="tile t2" data-go="pho"><span class="lv" data-lv="pho"></span><div class="ico">🔤</div><b>頭尾的音</b><span>首音 · 尾音</span></button>
+    <button class="tile t3" data-go="cvc"><span class="lv" data-lv="cvc"></span><div class="ico">🅰️</div><b>中間的音</b><span>母音 · 讀單字</span></button>
+    <button class="tile t5" data-go="draw"><div class="ico">🖍️</div><b>畫畫板</b><span>自由畫</span></button>
+  </div>
+</section>
+
+<section class="screen" id="s-album">
+  <div class="bar">
+    <div class="title">貼紙簿</div>
+    <div class="spacer"></div>
+    <div id="bookctl"><button id="bkdn">◀</button><b id="bkname">動物本</b><button id="bkup">▶</button></div>
+    <div class="info" id="album-info"></div>
+  </div>
+  <div id="album"></div>
+</section>
+
+<section class="screen" id="s-tap">
+  <div class="bar"><div class="title">快點我</div><div class="spacer"></div><div class="info" id="tap-time">30</div></div>
+  <div class="stage">
+    <div class="mission" id="tap-mission">動物跑出來就點它</div>
+    <div id="grid" class="wrap"></div>
+    <div class="info" id="tap-hit">0 分</div>
+  </div>
+</section>
+
+<section class="screen" id="s-mem">
+  <div class="bar"><div class="title">找一樣的</div><div class="spacer"></div><div class="info" id="mem-lv"></div></div>
+  <div class="stage"><div class="mission" id="mem-mission">兩張一組</div><div id="board" class="wrap"></div></div>
+</section>
+
+<section class="screen" id="s-cnt">
+  <div class="bar"><div class="title">數一數</div><div class="spacer"></div><div class="info" id="cnt-ok">0 / 8</div></div>
+  <div class="stage">
+    <div class="mission" id="cnt-mission">有幾個？</div>
+    <div id="things" class="wrap"></div>
+    <div class="word" id="cnt-word">how many?</div>
+    <div id="opts" class="opts wrap"></div>
+  </div>
+</section>
+
+<section class="screen" id="s-add">
+  <div class="bar"><div class="title">算一算</div><div class="spacer"></div><div class="info" id="add-ok">0 / 8</div></div>
+  <div class="stage">
+    <div class="mission" id="add-mission">合起來有幾個？</div>
+    <div id="sumbox" class="wrap"></div>
+    <div class="word" id="add-word"></div>
+    <div id="addopts" class="opts wrap"></div>
+  </div>
+</section>
+
+<section class="screen" id="s-seek">
+  <div class="bar"><div class="title">找找看</div><div class="spacer"></div><div class="info" id="seek-left"></div></div>
+  <div class="stage">
+    <div id="target"><span id="target-em">🐰</span><b>全部找出來</b></div>
+    <div id="seek" class="wrap"></div>
+  </div>
+</section>
+
+<section class="screen" id="s-simon">
+  <div class="bar"><div class="title">跟我做</div><div class="spacer"></div><div class="info" id="simon-lv"></div></div>
+  <div class="stage">
+    <div class="mission" id="simon-mission">照順序點</div>
+    <div id="pads" class="wrap"></div>
+    <div class="info" id="simon-msg">看好囉…</div>
+  </div>
+</section>
+
+<section class="screen" id="s-odd">
+  <div class="bar"><div class="title">誰不一樣</div><div class="spacer"></div><div class="info" id="odd-ok">0 / 8</div></div>
+  <div class="stage"><div class="mission" id="odd-mission">找出不一樣的</div><div id="odd" class="wrap"></div></div>
+</section>
+
+<section class="screen" id="s-pat">
+  <div class="bar"><div class="title">接下去</div><div class="spacer"></div><div class="info" id="pat-ok">0 / 8</div></div>
+  <div class="stage">
+    <div class="mission" id="pat-mission">問號是什麼？</div>
+    <div id="pattern" class="wrap"></div>
+    <div id="patopts" class="opts wrap"></div>
+  </div>
+</section>
+
+<section class="screen" id="s-pho">
+  <div class="bar"><div class="title">頭尾的音</div><div class="spacer"></div><div class="info" id="pho-ok">0 / 8</div></div>
+  <div class="stage">
+    <div class="mission" id="pho-mission">開頭是什麼音？</div>
+    <div id="pic" class="wrap">🍎</div>
+    <div class="word" id="pho-word">&nbsp;</div>
+    <div id="letters" class="opts wrap"></div>
+  </div>
+</section>
+
+<section class="screen" id="s-cvc">
+  <div class="bar"><div class="title">中間的音</div><div class="spacer"></div><div class="info" id="cvc-ok">0 / 8</div></div>
+  <div class="stage">
+    <div class="mission" id="cvc-mission">中間是哪個母音？</div>
+    <div id="cvcpic" class="wrap">🐱</div>
+    <div id="cvcword">c<span class="blank">_</span>t</div>
+    <div id="vowels" class="opts wrap"></div>
+  </div>
+</section>
+
+<section class="screen" id="s-draw">
+  <div class="bar"><div class="title">畫畫板</div><div class="spacer"></div><div class="info">想畫什麼就畫</div></div>
+  <div id="canvasBox"><canvas id="pad"></canvas></div>
+  <div class="tools" id="tools"></div>
+</section>
+
+<div id="toast"></div>
+
+<div class="mask" id="mask">
+  <div class="panel">
+    <div class="em" id="m-em">🎉</div>
+    <p id="m-txt">好棒！</p>
+    <p class="note" id="m-note"></p>
+    <div class="row">
+      <button class="btn ghost" id="m-home">選單</button>
+      <button class="btn" id="m-again">再玩一次</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var ANIMALS=["🐶","🐱","🐰","🐼","🐸","🐷","🐵","🦊","🐻","🐯","🐨","🦁","🐮","🐧","🐥"];
+  var THINGS=["🍎","🍌","🍓","🍇","🍊","🍐","⭐","🌸","🚗","🎈","🍪","🌻"];
+  var LOOKALIKE=[["🐶","🐺"],["🐱","🐯"],["🐰","🐭"],["🍊","🍑"],["🍎","🍅"],
+                 ["⭐","🌟"],["🐸","🐢"],["🌸","🌺"],["🐻","🐨"],["🍐","🥑"]];
+  var WORDS=["zero","one","two","three","four","five","six","seven","eight","nine","ten",
+             "eleven","twelve","thirteen","fourteen","fifteen","sixteen"];
+  var PHONICS=[
+    {e:"🍎",w:"apple",l:"A"},{e:"⚽",w:"ball",l:"B"},{e:"🐱",w:"cat",l:"C"},
+    {e:"🐶",w:"dog",l:"D"},{e:"🥚",w:"egg",l:"E"},{e:"🐟",w:"fish",l:"F"},
+    {e:"🎁",w:"gift",l:"G"},{e:"🎩",w:"hat",l:"H"},{e:"🍦",w:"ice cream",l:"I"},
+    {e:"🔑",w:"key",l:"K"},{e:"🍃",w:"leaf",l:"L"},{e:"🌙",w:"moon",l:"M"},
+    {e:"👃",w:"nose",l:"N"},{e:"🍊",w:"orange",l:"O"},{e:"🐷",w:"pig",l:"P"},
+    {e:"🐰",w:"rabbit",l:"R"},{e:"☀️",w:"sun",l:"S"},{e:"🌳",w:"tree",l:"T"},
+    {e:"☂️",w:"umbrella",l:"U"},{e:"🍉",w:"watermelon",l:"W"},{e:"🦓",w:"zebra",l:"Z"}
+  ];
+  var CVC=[
+    {e:"🐱",w:"cat",v:"a"},{e:"🎩",w:"hat",v:"a"},{e:"🎒",w:"bag",v:"a"},{e:"🚐",w:"van",v:"a"},
+    {e:"🛏️",w:"bed",v:"e"},{e:"🖊️",w:"pen",v:"e"},{e:"🐔",w:"hen",v:"e"},{e:"🕸️",w:"web",v:"e"},
+    {e:"🐷",w:"pig",v:"i"},{e:"6️⃣",w:"six",v:"i"},{e:"📌",w:"pin",v:"i"},{e:"🦇",w:"bat",v:"a"},
+    {e:"🐶",w:"dog",v:"o"},{e:"📦",w:"box",v:"o"},{e:"🪵",w:"log",v:"o"},{e:"🦊",w:"fox",v:"o"},
+    {e:"☀️",w:"sun",v:"u"},{e:"🚌",w:"bus",v:"u"},{e:"☕",w:"cup",v:"u"},{e:"🥜",w:"nut",v:"u"}
+  ];
+  var BOOKS=[
+    {n:"動物本",s:["🐰","🐻","🐼","🦊","🐧","🐨","🦁","🐯","🐮","🐷","🐸","🐵","🐥","🦄","🦋","🐞","🐢","🦓","🐘","🐴"]},
+    {n:"點心本",s:["🍭","🍰","🍪","🍩","🧁","🍓","🍉","🍇","🍒","🍑","🥐","🍦","🍫","🍬","🥞","🍎","🍌","🍞","🍯","🍮"]},
+    {n:"宇宙本",s:["🚀","🌟","🌙","⭐","☄️","🪐","🌈","🛸","🔭","🌞","🌍","🌌","🎆","🛰️","💫","🌠","🔮","🎇","☁️","⚡"]},
+    {n:"海洋本",s:["🐬","🐙","🦑","🦀","🐚","🐡","🦈","🌊","⛵","🏖️","🐟","🐳","🦞","🏝️","🐊","🌴","🪁","🦆","🐋","⚓"]}
+  ];
+  var PER_BOOK=20, COST=12, ALL=BOOKS.length*PER_BOOK;
+  var MAXLV=6;
+
+  var stars=0,books=[[],[],[],[]],viewBook=0,levels={},soundOn=false,actx=null,timers=[],current=null;
+  function totalGot(){return books.reduce(function(a,b){return a+b.length;},0);}
+  function activeBook(){
+    for(var i=0;i<BOOKS.length;i++)if(books[i].length<PER_BOOK)return i;
+    return -1;
+  }
+  function $(id){return document.getElementById(id);}
+
+  function save(){try{localStorage.setItem("mg4",JSON.stringify({s:stars,b:books,l:levels}));}catch(e){}}
+  function load(){
+    try{
+      var d=JSON.parse(localStorage.getItem("mg4")||"null");
+      if(!d){
+        /* 從舊版帶星星和等級過來 */
+        var old=JSON.parse(localStorage.getItem("mg3")||"{}");
+        if(typeof old.s==="number")stars=old.s;
+        if(old.l&&typeof old.l==="object")levels=old.l;
+        return;
+      }
+      if(typeof d.s==="number")stars=d.s;
+      if(Array.isArray(d.b))for(var i=0;i<BOOKS.length;i++)books[i]=Array.isArray(d.b[i])?d.b[i]:[];
+      if(d.l&&typeof d.l==="object")levels=d.l;
+    }catch(e){}
+  }
+  function lvOf(k){return Math.min(levels[k]||1,MAXLV);}
+  function setLv(k,n){levels[k]=Math.max(1,Math.min(n,MAXLV));save();paintLevels();}
+
+  function paintStars(){
+    $("stars").textContent=stars;
+    var tot=totalGot(),ab=activeBook();
+    $("stickcount").textContent="🏅 "+tot;
+    $("album-sub").textContent = ab<0
+      ? ("四本全部收集完成 🏆 "+tot+" 張")
+      : (tot?("《"+BOOKS[ab].n+"》"+books[ab].length+" / "+PER_BOOK+" · 共 "+tot+" 張"):"還沒有貼紙");
+  }
+  function paintLevels(){
+    Array.prototype.forEach.call(document.querySelectorAll("[data-lv]"),function(el){
+      el.textContent="Lv"+lvOf(el.dataset.lv);
+    });
+    if(current&&current!=="draw"&&current!=="album")$("lvnow").textContent="Lv"+lvOf(current);
+  }
+  function toast(msg){
+    var t=$("toast");t.textContent=msg;t.classList.add("on");
+    setTimeout(function(){t.classList.remove("on");},1700);
+  }
+  function addStar(n){
+    stars=Math.max(0,stars+n);
+    while(totalGot()<ALL&&stars>=(totalGot()+1)*COST){
+      var bi=activeBook();
+      if(bi<0)break;
+      var have=books[bi];
+      var pool=BOOKS[bi].s.filter(function(s){return have.indexOf(s)<0;});
+      var s=pool[Math.floor(Math.random()*pool.length)];
+      have.push(s);
+      toast("新貼紙 "+s+" 收到了！");
+      beep(1200,.2);
+      if(have.length===PER_BOOK){
+        (function(name,last){
+          setTimeout(function(){
+            toast(last?"四本全部收集完成 🏆":"《"+name+"》收集完成！開下一本");
+            beep(1400,.3);
+          },1750);
+        })(BOOKS[bi].n, bi===BOOKS.length-1);
+      }
+    }
+    paintStars();save();
+  }
+
+  function clearTimers(){timers.forEach(function(t){clearInterval(t);clearTimeout(t);});timers=[];}
+  function later(fn,ms){var t=setTimeout(fn,ms);timers.push(t);return t;}
+  function every(fn,ms){var t=setInterval(fn,ms);timers.push(t);return t;}
+  function pick(a){return a[Math.floor(Math.random()*a.length)];}
+  function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+  function rnd(n){return Math.floor(Math.random()*n);}
+
+  function beep(freq,dur){
+    if(!soundOn)return;
+    try{
+      actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+      var o=actx.createOscillator(),g=actx.createGain();
+      o.type="sine";o.frequency.value=freq;
+      g.gain.setValueAtTime(.14,actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+dur);
+      o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+dur);
+    }catch(e){}
+  }
+  function fly(x,y,txt){
+    var d=document.createElement("div");
+    d.className="float";d.textContent=txt;
+    d.style.left=(x-14)+"px";d.style.top=(y-30)+"px";
+    document.body.appendChild(d);
+    setTimeout(function(){d.remove();},700);
+  }
+
+  var SCREENS=["s-menu","s-album","s-tap","s-mem","s-cnt","s-add","s-seek",
+               "s-simon","s-odd","s-pat","s-pho","s-cvc","s-draw"];
+  function show(id){
+    SCREENS.forEach(function(s){$(s).classList.toggle("on",s===id);});
+    var inGame=(id!=="s-menu");
+    $("home").style.display=inGame?"":"none";
+    $("lvctl").style.display=(inGame&&current&&current!=="draw"&&current!=="album")?"flex":"none";
+    paintLevels();
+  }
+  function goHome(){clearTimers();$("mask").classList.remove("on");current=null;show("s-menu");}
+  $("home").onclick=goHome;
+  $("m-home").onclick=goHome;
+  $("m-again").onclick=function(){$("mask").classList.remove("on");starters[current]();};
+  $("lvdn").onclick=function(){if(!current)return;setLv(current,lvOf(current)-1);starters[current]();};
+  $("lvup").onclick=function(){if(!current)return;setLv(current,lvOf(current)+1);starters[current]();};
+  $("sound").onclick=function(){
+    soundOn=!soundOn;$("sound").textContent=soundOn?"🔊":"🔇";
+    if(soundOn)beep(700,.12);
+  };
+  function finish(em,txt,note){
+    clearTimers();
+    $("m-em").textContent=em;$("m-txt").textContent=txt;$("m-note").textContent=note||"";
+    $("mask").classList.add("on");
+    beep(660,.15);later(function(){beep(880,.25);},160);
+  }
+  function grade(key,ok,total){
+    var lv=lvOf(key);
+    if(ok>=Math.ceil(total*0.75)&&lv<MAXLV){setLv(key,lv+1);return "太強了，升到 Lv"+(lv+1);}
+    if(ok<=Math.floor(total*0.35)&&lv>1){setLv(key,lv-1);return "調回 Lv"+(lv-1)+"，慢慢來";}
+    return "維持 Lv"+lv;
+  }
+
+  /* ---------- 貼紙簿 ---------- */
+  function startAlbum(){
+    show("s-album");
+    var ab=activeBook();
+    viewBook=(ab<0?BOOKS.length-1:ab);
+    paintAlbum();
+  }
+  function paintAlbum(){
+    var have=books[viewBook],full=have.length>=PER_BOOK;
+    $("bkname").textContent=BOOKS[viewBook].n;
+    $("album-info").textContent=have.length+" / "+PER_BOOK;
+    var box=$("album");box.innerHTML="";
+    if(full){
+      var r=document.createElement("div");
+      r.className="done-ribbon";r.textContent="這一本收集完成 🏆";
+      box.appendChild(r);
+    }
+    BOOKS[viewBook].s.forEach(function(s){
+      var d=document.createElement("div");
+      var has=have.indexOf(s)>=0;
+      d.className="slot"+(has?" has":"")+(full?" gold":"");
+      d.textContent=has?s:"?";
+      box.appendChild(d);
+    });
+  }
+  $("bkdn").onclick=function(){viewBook=(viewBook+BOOKS.length-1)%BOOKS.length;paintAlbum();};
+  $("bkup").onclick=function(){viewBook=(viewBook+1)%BOOKS.length;paintAlbum();};
+
+  /* ---------- 1 快點我：Lv3 起有不能點的，Lv5 起指定目標 ---------- */
+  var holes=[];
+  (function(){
+    var g=$("grid");
+    for(var i=0;i<9;i++){
+      var d=document.createElement("div");
+      d.className="hole";d.innerHTML='<span class="pop"></span>';
+      g.appendChild(d);holes.push(d);
+    }
+  })();
+  function startTap(){
+    clearTimers();show("s-tap");
+    var lv=lvOf("tap"),left=30,score=0,combo=0;
+    var spawnMs=[760,640,540,460,400,340][lv-1];
+    var stayMs=[1500,1300,1100,950,820,700][lv-1];
+    var badRate=lv>=3?(lv>=5?.4:.28):0;
+    var onlyTarget=lv>=5?pick(ANIMALS):null;
+    $("tap-mission").textContent = onlyTarget
+      ? ("只能點 "+onlyTarget+"，其他都不可以")
+      : (lv>=3?"動物可以點，🐝 不可以點":"動物跑出來就點它");
+    $("tap-time").textContent=left;$("tap-hit").textContent="0 分";
+    holes.forEach(function(h){h.className="hole";h.onclick=null;});
+
+    every(function(){
+      var free=holes.filter(function(h){return !h.classList.contains("up");});
+      if(!free.length)return;
+      var h=pick(free);
+      var bad=Math.random()<badRate;
+      var sym;
+      if(onlyTarget) sym = bad?pick(ANIMALS.filter(function(a){return a!==onlyTarget;})):onlyTarget;
+      else sym = bad?"🐝":pick(ANIMALS);
+      var isGood = onlyTarget ? (sym===onlyTarget) : !bad;
+      h.firstChild.textContent=sym;
+      h.classList.add("up");
+      if(!isGood)h.classList.add("bad");
+      h.onclick=function(ev){
+        if(!h.classList.contains("up"))return;
+        h.className="hole";h.onclick=null;
+        if(isGood){
+          combo++;
+          var gain=1+(combo>=5?1:0)+(combo>=10?1:0);
+          score+=gain;addStar(gain);
+          beep(760+combo*12,.08);fly(ev.clientX,ev.clientY,combo>=5?"✨":"⭐");
+        }else{
+          combo=0;score=Math.max(0,score-2);
+          beep(240,.18);fly(ev.clientX,ev.clientY,"💥");
+        }
+        $("tap-hit").textContent=score+" 分"+(combo>=5?"（連 "+combo+"）":"");
+      };
+      later(function(){h.className="hole";h.onclick=null;},stayMs+Math.random()*300);
+    },spawnMs);
+
+    every(function(){
+      left--;$("tap-time").textContent=left;
+      if(left<=0){
+        holes.forEach(function(h){h.className="hole";h.onclick=null;});
+        var need=10+lv*4;
+        finish("🐹",score+" 分",grade("tap",score>=need?4:1,4));
+      }
+    },1000);
+  }
+
+  /* ---------- 2 找一樣的：Lv4 起三張一組 ---------- */
+  function startMem(){
+    clearTimers();show("s-mem");
+    var lv=lvOf("mem");
+    var groupSize=lv>=4?3:2;
+    var plan=[[3,4],[4,5],[4,6,6],[3,4],[4,5],[4,5,6]][lv-1];
+    var idx=0;
+    $("mem-mission").textContent=groupSize===3?"三張一組才算配對成功":"兩張一組";
+    deal();
+    function deal(){
+      var groups=plan[idx],cards=groups*groupSize;
+      $("mem-lv").textContent="第 "+(idx+1)+"/"+plan.length+" 回";
+      var board=$("board");
+      var cols=cards<=8?(cards<=6?3:4):(cards<=12?4:5);
+      board.style.gridTemplateColumns="repeat("+cols+",1fr)";
+      board.innerHTML="";
+      var set=shuffle(ANIMALS.slice()).slice(0,groups);
+      var deck=[];
+      set.forEach(function(s){for(var i=0;i<groupSize;i++)deck.push(s);});
+      shuffle(deck);
+      var open=[],lock=false,done=0;
+      deck.forEach(function(sym){
+        var c=document.createElement("div");
+        c.className="card";c.innerHTML='<span class="face">'+sym+'</span>';
+        c.onclick=function(){
+          if(lock||c.classList.contains("open")||c.classList.contains("done"))return;
+          c.classList.add("open");beep(620,.08);
+          open.push({el:c,sym:sym});
+          if(open.length<groupSize)return;
+          lock=true;
+          var allSame=open.every(function(o){return o.sym===open[0].sym;});
+          if(allSame){
+            later(function(){
+              open.forEach(function(o){o.el.classList.remove("open");o.el.classList.add("done");});
+              open=[];lock=false;done++;addStar(groupSize);beep(920,.14);
+              if(done===groups){
+                idx++;
+                if(idx<plan.length){beep(1040,.2);later(deal,600);}
+                else finish("🃏","全部配對成功！",grade("mem",4,4));
+              }
+            },420);
+          }else{
+            later(function(){
+              open.forEach(function(o){o.el.classList.remove("open");});
+              open=[];lock=false;
+            },900);
+          }
+        };
+        board.appendChild(c);
+      });
+    }
+  }
+
+  /* ---------- 3 數一數：Lv3 起混雜只數目標，Lv5 起看一下就藏起來 ---------- */
+  function startCount(){
+    clearTimers();show("s-cnt");
+    var lv=lvOf("cnt"),ok=0,round=0,total=8;
+    var maxN=[5,7,8,10,12,15][lv-1];
+    var mixed=lv>=3, flash=lv>=5, flashMs=lv===5?2600:1900;
+    next();
+    function next(){
+      round++;$("cnt-ok").textContent=ok+" / "+total;
+      var n=2+rnd(maxN-1);
+      var sym=pick(THINGS);
+      var others=THINGS.filter(function(t){return t!==sym;});
+      var box=$("things");box.innerHTML="";
+      var cells=[];
+      for(var i=0;i<n;i++)cells.push(sym);
+      if(mixed){var noise=2+rnd(4+lv);for(var k=0;k<noise;k++)cells.push(pick(others));}
+      shuffle(cells);
+      cells.forEach(function(s){
+        var e=document.createElement("span");e.textContent=s;box.appendChild(e);
+      });
+      $("cnt-mission").textContent=mixed?("有幾個 "+sym+"？"):"有幾個？";
+      $("cnt-word").textContent=flash?"看仔細，等一下會蓋起來":"how many?";
+
+      var choices=[n];
+      while(choices.length<(lv>=4?4:3)){
+        var c=Math.max(1,n+(rnd(5)-2));
+        if(choices.indexOf(c)<0)choices.push(c);
+      }
+      shuffle(choices);
+      var opts=$("opts");opts.innerHTML="";
+      choices.forEach(function(c){
+        var b=document.createElement("button");
+        b.className="num";b.textContent=c;b.disabled=flash;
+        b.onclick=function(ev){
+          if(b.disabled)return;
+          if(c===n){
+            b.classList.add("yes");
+            Array.prototype.forEach.call(opts.children,function(x){x.disabled=true;});
+            ok++;addStar(flash?4:2);$("cnt-ok").textContent=ok+" / "+total;
+            $("cnt-word").textContent=WORDS[n]||n;
+            beep(880,.14);fly(ev.clientX,ev.clientY,"⭐");
+            later(function(){
+              if(round>=total)finish("🍎","答對 "+ok+" / "+total,grade("cnt",ok,total));
+              else next();
+            },950);
+          }else{b.classList.add("no");b.disabled=true;beep(300,.14);}
+        };
+        opts.appendChild(b);
+      });
+      if(flash){
+        later(function(){
+          box.innerHTML='<span style="font-size:44px">🤔</span>';
+          $("cnt-word").textContent="剛剛有幾個？";
+          Array.prototype.forEach.call(opts.children,function(x){x.disabled=false;});
+        },flashMs);
+      }
+    }
+  }
+
+  /* ---------- 4 算一算：加 → 減 → 缺數 ---------- */
+  function startAdd(){
+    clearTimers();show("s-add");
+    var lv=lvOf("add"),ok=0,round=0,total=8;
+    var cap=[3,4,5,5,6,8][lv-1];
+    var modes=[["add"],["add"],["add","sub"],["add","sub"],["add","sub","miss"],["add","sub","miss"]][lv-1];
+    next();
+    function next(){
+      round++;$("add-ok").textContent=ok+" / "+total;
+      var mode=pick(modes),box=$("sumbox");box.innerHTML="";
+      var answer,label;
+      var sym=pick(THINGS);
+      if(mode==="add"){
+        var a=1+rnd(cap),b=1+rnd(cap);answer=a+b;
+        var symB=pick(THINGS.filter(function(t){return t!==sym;}));
+        box.appendChild(groupEl(a,sym));
+        box.appendChild(signEl("➕"));
+        box.appendChild(groupEl(b,symB));
+        label=a+" + "+b+" = ?";
+        $("add-mission").textContent="合起來有幾個？";
+      }else if(mode==="sub"){
+        var t=3+rnd(cap+2),g=1+rnd(t-1);answer=t-g;
+        var gr=groupEl(t,sym);
+        Array.prototype.forEach.call(gr.children,function(c,i){if(i>=t-g)c.className="gone";});
+        box.appendChild(gr);
+        label=t+" − "+g+" = ?";
+        $("add-mission").textContent="拿走"+g+"個，還剩幾個？";
+      }else{
+        var total2=3+rnd(cap+3),have=1+rnd(total2-1);answer=total2-have;
+        box.appendChild(groupEl(have,sym));
+        box.appendChild(signEl("➕"));
+        var q=document.createElement("div");q.className="plus";q.textContent="❓";box.appendChild(q);
+        label=have+" + ? = "+total2;
+        $("add-mission").textContent="還要幾個才會變成 "+total2+"？";
+      }
+      $("add-word").textContent=label;
+      var choices=[answer];
+      while(choices.length<(lv>=4?4:3)){
+        var c=Math.max(0,answer+(rnd(5)-2));
+        if(choices.indexOf(c)<0)choices.push(c);
+      }
+      shuffle(choices);
+      var opts=$("addopts");opts.innerHTML="";
+      choices.forEach(function(c){
+        var bt=document.createElement("button");
+        bt.className="num";bt.textContent=c;
+        bt.onclick=function(ev){
+          if(bt.disabled)return;
+          if(c===answer){
+            bt.classList.add("yes");
+            Array.prototype.forEach.call(opts.children,function(x){x.disabled=true;});
+            ok++;addStar(mode==="add"?3:4);$("add-ok").textContent=ok+" / "+total;
+            $("add-word").textContent=label.replace("?",answer)+"  ("+(WORDS[answer]||answer)+")";
+            beep(880,.14);fly(ev.clientX,ev.clientY,"⭐");
+            later(function(){
+              if(round>=total)finish("➕","答對 "+ok+" / "+total,grade("add",ok,total));
+              else next();
+            },1150);
+          }else{bt.classList.add("no");bt.disabled=true;beep(300,.14);}
+        };
+        opts.appendChild(bt);
+      });
+    }
+    function groupEl(n,sym){
+      var g=document.createElement("div");g.className="group";
+      for(var i=0;i<n;i++){var s=document.createElement("span");s.textContent=sym;g.appendChild(s);}
+      return g;
+    }
+    function signEl(t){var d=document.createElement("div");d.className="plus";d.textContent=t;return d;}
+  }
+
+  /* ---------- 5 找找看：Lv3 起兩種目標，Lv5 起限時 ---------- */
+  function startSeek(){
+    clearTimers();show("s-seek");
+    var lv=lvOf("seek"),rounds=2+Math.ceil(lv/2),round=0;
+    var twoTargets=lv>=3, limit=lv>=5?(lv===5?22:16):0;
+    deal();
+    function deal(){
+      clearTimers();round++;
+      var pool=shuffle(ANIMALS.slice());
+      var targets=twoTargets?[pool[0],pool[1]]:[pool[0]];
+      var others=pool.slice(targets.length,targets.length+3+lv);
+      var each=3+rnd(2)+Math.ceil(lv/2);
+      var need=each*targets.length,found=0,cells=25;
+      $("target-em").textContent=targets.join(" ");
+      var timeLeft=limit;
+      paint();
+      var arr=[];
+      targets.forEach(function(t){for(var i=0;i<each;i++)arr.push(t);});
+      while(arr.length<cells)arr.push(pick(others));
+      shuffle(arr);
+      var g=$("seek");g.innerHTML="";
+      arr.forEach(function(sym){
+        var d=document.createElement("div");
+        d.className="seekcell";d.textContent=sym;
+        d.onclick=function(ev){
+          if(d.classList.contains("got"))return;
+          if(targets.indexOf(sym)>=0){
+            d.classList.add("got");found++;addStar(1);paint();
+            beep(820,.09);fly(ev.clientX,ev.clientY,"⭐");
+            if(found===need){
+              beep(1040,.2);clearTimers();
+              if(round>=rounds)finish("🔍","全部找到了！",grade("seek",4,4));
+              else later(deal,650);
+            }
+          }else{
+            d.classList.add("miss");beep(300,.12);
+            later(function(){d.classList.remove("miss");},350);
+          }
+        };
+        g.appendChild(d);
+      });
+      if(limit){
+        every(function(){
+          timeLeft--;paint();
+          if(timeLeft<=0){clearTimers();finish("🔍","時間到，找到 "+found+"/"+need,grade("seek",found>=need-1?4:1,4));}
+        },1000);
+      }
+      function paint(){
+        $("seek-left").textContent=round+"/"+rounds+" · 還有 "+(need-found)+(limit?(" · "+timeLeft+"s"):"");
+      }
+    }
+  }
+
+  /* ---------- 6 跟我做：Lv5 起倒著點 ---------- */
+  var pads=[];
+  (function(){
+    var faces=["🌸","💧","⭐","🍀"],box=$("pads");
+    for(var i=0;i<4;i++){
+      var d=document.createElement("div");
+      d.className="pad p"+i;d.textContent=faces[i];
+      box.appendChild(d);pads.push(d);
+    }
+  })();
+  function litPad(i,ms){
+    pads[i].classList.add("lit");
+    beep([523,659,784,988][i],.2);
+    later(function(){pads[i].classList.remove("lit");},ms||280);
+  }
+  function startSimon(){
+    clearTimers();show("s-simon");
+    var lv=lvOf("simon"),goal=[4,5,7,9,6,8][lv-1];
+    var gap=[680,600,520,440,520,420][lv-1];
+    var reverse=lv>=5;
+    $("simon-mission").textContent=reverse?"倒著點回來！最後一個先點":"照順序點";
+    var seq=[],step=0,playing=true;
+    pads.forEach(function(p,i){
+      p.onclick=function(){
+        if(playing)return;
+        litPad(i,200);
+        var want=reverse?seq[seq.length-1-step]:seq[step];
+        if(want===i){
+          step++;
+          if(step===seq.length){
+            addStar(reverse?4:2);
+            if(seq.length>=goal){finish("🎵","記住 "+goal+" 個！",grade("simon",4,4));return;}
+            $("simon-msg").textContent="答對了！";
+            later(grow,750);
+          }
+        }else{
+          beep(220,.3);
+          finish("🎵","記住了 "+(seq.length-1)+" 個","目標 "+goal+" 個 · "+grade("simon",seq.length-1>=goal-2?4:1,4));
+        }
+      };
+    });
+    grow();
+    function grow(){
+      playing=true;step=0;
+      seq.push(rnd(4));
+      $("simon-lv").textContent=seq.length+" / "+goal;
+      $("simon-msg").textContent="看好囉…";
+      seq.forEach(function(v,i){later(function(){litPad(v,gap*0.55);},600+i*gap);});
+      later(function(){
+        playing=false;
+        $("simon-msg").textContent=reverse?"倒著點！":"換你囉！";
+      },600+seq.length*gap);
+    }
+  }
+
+  /* ---------- 7 誰不一樣：Lv3 起分類題，Lv5 起相似圖 ---------- */
+  function startOdd(){
+    clearTimers();show("s-odd");
+    var lv=lvOf("odd"),ok=0,round=0,total=8;
+    var sizes=[4,4,6,6,9,9][lv-1];
+    deal();
+    function deal(){
+      $("odd-ok").textContent=ok+" / "+total;
+      var n=sizes,cols=n===4?2:3,box=$("odd");
+      box.style.gridTemplateColumns="repeat("+cols+",1fr)";
+      box.innerHTML="";
+      var fills=[],oddSym,mission;
+      if(lv>=5){
+        var pair=pick(LOOKALIKE);
+        oddSym=pair[1];
+        for(var i=0;i<n;i++)fills.push(pair[0]);
+        mission="仔細看，有一個長得不太一樣";
+      }else if(lv>=3){
+        var animalMode=Math.random()<.5;
+        var base=animalMode?ANIMALS:THINGS, other=animalMode?THINGS:ANIMALS;
+        var bs=shuffle(base.slice()).slice(0,n);
+        fills=bs;
+        oddSym=pick(other);
+        mission=animalMode?"哪一個不是動物？":"哪一個不是東西？";
+      }else{
+        var pool=shuffle(ANIMALS.concat(THINGS).slice());
+        for(var j=0;j<n;j++)fills.push(pool[0]);
+        oddSym=pool[1];
+        mission="找出不一樣的";
+      }
+      $("odd-mission").textContent=mission;
+      var oddIndex=rnd(n),locked=false;
+      for(var k=0;k<n;k++){
+        (function(k){
+          var d=document.createElement("div");
+          d.className="oddcell";
+          d.textContent=(k===oddIndex)?oddSym:fills[k];
+          d.onclick=function(ev){
+            if(locked)return;
+            if(k===oddIndex){
+              locked=true;d.classList.add("yes");ok++;round++;addStar(lv>=3?3:2);
+              $("odd-ok").textContent=ok+" / "+total;
+              beep(900,.14);fly(ev.clientX,ev.clientY,"⭐");
+              later(function(){
+                if(round>=total)finish("🧩","答對 "+ok+" / "+total,grade("odd",ok,total));
+                else deal();
+              },800);
+            }else{
+              d.classList.add("no");beep(300,.12);
+              later(function(){d.classList.remove("no");},350);
+            }
+          };
+          box.appendChild(d);
+        })(k);
+      }
+    }
+  }
+
+  /* ---------- 8 接下去：Lv4 起挖中間 ---------- */
+  function startPattern(){
+    clearTimers();show("s-pat");
+    var lv=lvOf("pat"),ok=0,round=0,total=8;
+    var forms=[["AB"],["AB","AAB"],["AAB","ABC"],["ABC","AABB"],["AABB","ABCC","ABCD"],["ABCD","AABBC","ABBCC"]][lv-1];
+    var midBlank=lv>=4,nOpt=lv>=4?4:3;
+    $("pat-mission").textContent=midBlank?"問號是什麼？（在中間喔）":"接下來是什麼？";
+    next();
+    function next(){
+      round++;$("pat-ok").textContent=ok+" / "+total;
+      var form=pick(forms);
+      var kinds=[];form.split("").forEach(function(k){if(kinds.indexOf(k)<0)kinds.push(k);});
+      var syms=shuffle(THINGS.concat(ANIMALS).slice()).slice(0,kinds.length+1);
+      var map={};kinds.forEach(function(k,i){map[k]=syms[i];});
+      var unit=form.split("").map(function(k){return map[k];});
+      var reps=Math.max(3,Math.ceil(11/unit.length));
+      var seq=[];
+      for(var r=0;r<reps;r++)seq=seq.concat(unit);
+      seq=seq.slice(0,Math.min(seq.length,unit.length*3));
+      var blankIdx=midBlank?(unit.length+rnd(seq.length-unit.length)):(seq.length-1);
+      var answer=seq[blankIdx];
+      var row=$("pattern");row.innerHTML="";
+      var qcell=null;
+      seq.forEach(function(s,i){
+        var d=document.createElement("div");
+        if(i===blankIdx){d.className="pcell q";d.textContent="？";qcell=d;}
+        else{d.className="pcell";d.textContent=s;}
+        row.appendChild(d);
+      });
+      var choices=[answer];
+      shuffle(syms.slice()).forEach(function(s){
+        if(choices.indexOf(s)<0&&choices.length<nOpt)choices.push(s);
+      });
+      while(choices.length<nOpt){var e=pick(THINGS);if(choices.indexOf(e)<0)choices.push(e);}
+      shuffle(choices);
+      var opts=$("patopts");opts.innerHTML="";
+      choices.forEach(function(c){
+        var b=document.createElement("button");
+        b.className="num";b.textContent=c;
+        b.onclick=function(ev){
+          if(b.disabled)return;
+          if(c===answer){
+            b.classList.add("yes");qcell.textContent=c;qcell.classList.remove("q");
+            Array.prototype.forEach.call(opts.children,function(x){x.disabled=true;});
+            ok++;addStar(3);$("pat-ok").textContent=ok+" / "+total;
+            beep(880,.14);fly(ev.clientX,ev.clientY,"⭐");
+            later(function(){
+              if(round>=total)finish("🔁","答對 "+ok+" / "+total,grade("pat",ok,total));
+              else next();
+            },950);
+          }else{b.classList.add("no");b.disabled=true;beep(300,.14);}
+        };
+        opts.appendChild(b);
+      });
+    }
+  }
+
+  /* ---------- 9 頭尾的音：Lv4 起考尾音 ---------- */
+  function startPhonics(){
+    clearTimers();show("s-pho");
+    var lv=lvOf("pho"),ok=0,round=0,total=8;
+    var nOpt=[3,3,4,4,5,5][lv-1];
+    var endMode=lv>=4;
+    next();
+    function next(){
+      round++;$("pho-ok").textContent=ok+" / "+total;
+      var ending=endMode&&(lv>=6?Math.random()<.6:Math.random()<.4);
+      var item,answer;
+      if(ending){
+        item=pick(CVC);
+        answer=item.w[2].toUpperCase();
+        $("pho-mission").textContent="結尾是什麼音？";
+      }else{
+        item=pick(PHONICS);
+        answer=item.l;
+        $("pho-mission").textContent="開頭是什麼音？";
+      }
+      $("pic").textContent=item.e;
+      $("pho-word").innerHTML="&nbsp;";
+      var bank=ending?["B","D","G","N","P","T","X","S","M"]:PHONICS.map(function(p){return p.l;});
+      var choices=[answer];
+      var guard=0;
+      while(choices.length<nOpt&&guard++<200){
+        var l=pick(bank);
+        if(choices.indexOf(l)<0)choices.push(l);
+      }
+      shuffle(choices);
+      var box=$("letters");box.innerHTML="";
+      choices.forEach(function(l){
+        var b=document.createElement("button");
+        b.className="letter";b.textContent=l+l.toLowerCase();
+        b.onclick=function(ev){
+          if(b.disabled)return;
+          if(l===answer){
+            b.classList.add("yes");
+            Array.prototype.forEach.call(box.children,function(x){x.disabled=true;});
+            ok++;addStar(ending?3:2);$("pho-ok").textContent=ok+" / "+total;
+            $("pho-word").textContent=item.w;
+            beep(880,.14);fly(ev.clientX,ev.clientY,"⭐");
+            later(function(){
+              if(round>=total)finish("🔤","答對 "+ok+" / "+total,grade("pho",ok,total));
+              else next();
+            },1100);
+          }else{b.classList.add("no");b.disabled=true;beep(300,.14);}
+        };
+        box.appendChild(b);
+      });
+    }
+  }
+
+  /* ---------- 10 中間的音：Lv5 起直接讀整個單字 ---------- */
+  function startCVC(){
+    clearTimers();show("s-cvc");
+    var lv=lvOf("cvc"),ok=0,round=0,total=8;
+    var nOpt=[3,3,4,5,3,3][lv-1];
+    var wholeWord=lv>=5, hidePic=lv>=6;
+    next();
+    function next(){
+      round++;$("cvc-ok").textContent=ok+" / "+total;
+      var item=pick(CVC);
+      $("cvcpic").textContent=hidePic?"❓":item.e;
+      $("cvcpic").style.display=wholeWord&&hidePic?"none":"";
+      if(wholeWord){
+        $("cvc-mission").textContent=hidePic?"哪一個字念這個？先讀讀看":"哪一個字才對？";
+        $("cvcword").textContent=hidePic?item.e:"?";
+        if(hidePic)$("cvcword").style.fontSize="58px";
+        else $("cvcword").style.fontSize="40px";
+        var pool=shuffle(CVC.filter(function(c){return c.w!==item.w;})).slice(0,nOpt-1);
+        var opts=pool.map(function(p){return p.w;});
+        opts.push(item.w);shuffle(opts);
+        renderChoices(opts,item.w,function(){$("cvcword").textContent=item.w;});
+      }else{
+        $("cvc-mission").textContent="中間是哪個母音？";
+        $("cvcword").style.fontSize="40px";
+        $("cvcword").innerHTML=item.w[0]+'<span class="blank">_</span>'+item.w[2];
+        var all=["a","e","i","o","u"],ch=[item.v],guard=0;
+        while(ch.length<nOpt&&guard++<100){var v=pick(all);if(ch.indexOf(v)<0)ch.push(v);}
+        shuffle(ch);
+        renderChoices(ch,item.v,function(){
+          $("cvcword").innerHTML=item.w[0]+'<span style="color:#3FA37E">'+item.v+'</span>'+item.w[2];
+        });
+      }
+      function renderChoices(list,answer,reveal){
+        var box=$("vowels");box.innerHTML="";
+        list.forEach(function(v){
+          var b=document.createElement("button");
+          b.className="letter";b.textContent=v;
+          b.onclick=function(ev){
+            if(b.disabled)return;
+            if(v===answer){
+              b.classList.add("yes");
+              Array.prototype.forEach.call(box.children,function(x){x.disabled=true;});
+              ok++;addStar(wholeWord?4:3);$("cvc-ok").textContent=ok+" / "+total;
+              reveal();
+              beep(880,.14);fly(ev.clientX,ev.clientY,"⭐");
+              later(function(){
+                if(round>=total)finish("🅰️","答對 "+ok+" / "+total,grade("cvc",ok,total));
+                else next();
+              },1250);
+            }else{b.classList.add("no");b.disabled=true;beep(300,.14);}
+          };
+          box.appendChild(b);
+        });
+      }
+    }
+  }
+
+  /* ---------- 11 畫畫板 ---------- */
+  var cv=$("pad"),cx=cv.getContext("2d"),penColor="#6B4F3A",penSize=8,drawing=false;
+  var COLORS=["#6B4F3A","#FF7BA0","#FF9E4D","#FFD24D","#5BC79B","#5AA9E6","#A87BE0"];
+  (function(){
+    var t=$("tools");
+    COLORS.forEach(function(c,i){
+      var b=document.createElement("button");
+      b.className="sw"+(i===0?" on":"");b.style.background=c;
+      b.onclick=function(){
+        penColor=c;penSize=8;
+        Array.prototype.forEach.call(t.querySelectorAll(".sw"),function(x){x.classList.remove("on");});
+        b.classList.add("on");
+      };
+      t.appendChild(b);
+    });
+    var er=document.createElement("button");
+    er.className="tool";er.textContent="橡皮擦";
+    er.onclick=function(){penColor="#FFFFFF";penSize=26;
+      Array.prototype.forEach.call(t.querySelectorAll(".sw"),function(x){x.classList.remove("on");});};
+    t.appendChild(er);
+    var cl=document.createElement("button");
+    cl.className="tool";cl.textContent="全部擦掉";
+    cl.onclick=function(){cx.fillStyle="#fff";cx.fillRect(0,0,cv.width,cv.height);};
+    t.appendChild(cl);
+  })();
+  function fitCanvas(){
+    var box=$("canvasBox"),r=window.devicePixelRatio||1;
+    var w=box.clientWidth,h=box.clientHeight;
+    if(!w||!h)return;
+    cv.width=w*r;cv.height=h*r;
+    cx.setTransform(r,0,0,r,0,0);
+    cx.fillStyle="#fff";cx.fillRect(0,0,w,h);
+    cx.lineCap="round";cx.lineJoin="round";
+  }
+  function pos(e){var r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
+  cv.addEventListener("pointerdown",function(e){
+    drawing=true;cv.setPointerCapture(e.pointerId);
+    var p=pos(e);cx.strokeStyle=penColor;cx.lineWidth=penSize;
+    cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(p.x+.1,p.y);cx.stroke();
+  });
+  cv.addEventListener("pointermove",function(e){
+    if(!drawing)return;
+    var p=pos(e);cx.strokeStyle=penColor;cx.lineWidth=penSize;
+    cx.lineTo(p.x,p.y);cx.stroke();
+  });
+  ["pointerup","pointercancel","pointerleave"].forEach(function(ev){
+    cv.addEventListener(ev,function(){drawing=false;});
+  });
+  window.addEventListener("resize",function(){if($("s-draw").classList.contains("on"))fitCanvas();});
+  function startDraw(){clearTimers();show("s-draw");requestAnimationFrame(fitCanvas);}
+
+  /* ---------- 綁定 ---------- */
+  var starters={album:startAlbum,tap:startTap,mem:startMem,cnt:startCount,add:startAdd,
+    seek:startSeek,simon:startSimon,odd:startOdd,pat:startPattern,pho:startPhonics,
+    cvc:startCVC,draw:startDraw};
+  Array.prototype.forEach.call(document.querySelectorAll("[data-go]"),function(b){
+    b.onclick=function(){current=b.dataset.go;starters[current]();};
+  });
+
+  load();paintStars();paintLevels();
+})();
+</script>
+</body>
+</html>
